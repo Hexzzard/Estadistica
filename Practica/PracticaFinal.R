@@ -4,7 +4,7 @@ library(ggcorrplot) #crear matriz de correlacion
 library(margins)#ame
 
 set.seed(911)
-raw_df <- read_excel("DATOS CLEANED FILTRADOS.xlsx")
+raw_df <- read_excel("DATOS FILTRADOS.xlsx")
 
 #Se trabaja en base a la teoria de cuantos dias retrasa la titulacion de una persona
 #una serie de factores, debido a no poder operar sobre los estudiantes reprobados
