@@ -4,13 +4,15 @@ from lightgbm import LGBMRegressor, Dataset
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 dataset = pd.read_excel("PowerBi.xlsx")
 
 #filtrar datos seleccionando solo lo numerico
 dataset = dataset.select_dtypes(include=[np.number]).copy()
 
-dataset = dataset.drop(['DURACION_CARRERA', 'ID'], axis=1)
+#dataset = dataset.drop(['DURACION_CARRERA', 'ID', 'ANO_TITULACION', 'TOTAL_CREDITOS_PRIMER_ANO', 'PROMEDIO_PONDERADO', 'PROMEDIO_PSU_LM'], axis=1)
+dataset = dataset[['NOMBRE_PROGRAMA', 'PUEBLO_ORIGINARIO', 'Semestres']]
 
 #almacena el valor de la prediccion
 predictions = []
@@ -43,7 +45,7 @@ for i in range(len(dataset)):
  }
  
  #entrenar modelo
- lgb_model = LGBMRegressor(**params, importance_type='gain') #gain/split
+ lgb_model = LGBMRegressor(**params, importance_type='split') #gain/split
  lgb_model.fit(X_train, y_train)
  
  #almacenar modelo/importancias
@@ -59,16 +61,24 @@ for i in range(len(dataset)):
 
 #promedio de las importancias
 importances_avg = np.mean(importances_list, axis=0)
+total_importance = np.sum(importances_avg)
+importances_norm = importances_avg / total_importance
+
+#error cuadratico medio
+mse = round(mean_squared_error(dataset['Semestres'].values, predictions), 4)
+mse_patch = Patch(color='white', label=f'MSE: {mse}')
+num_filas = len(dataset.index)
 
 #crear el grafico con el top5 mayores importancias Gain/Split
 feature_names = X_train.columns
-importances_avg_df = pd.DataFrame({'Feature': feature_names, 'Importance': importances_avg})
+importances_avg_df = pd.DataFrame({'Caracteristica': feature_names, 'Importancia': importances_norm})
 
-ax = importances_avg_df.sort_values(by='Importance', ascending=False).head(5).plot(kind='bar', x='Feature', y='Importance', rot=90, figsize=(10, 5))
-ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-plt.subplots_adjust(bottom=0.3)
-plt.title("Promedio de Importancia de Características (Gain)")
+ax = importances_avg_df.sort_values(by='Importancia', ascending=False).plot(kind='bar', x='Caracteristica', y='Importancia', rot=90, figsize=(10, 6))
+ax.set_xticklabels(ax.get_xticklabels(), rotation=30, ha="right")
+ax.set_ylabel('Importancia', fontsize='large',labelpad=20)
+ax.set_xlabel('Caracteristica', fontsize='large')
+ax.legend(handles=[mse_patch],fontsize='xx-large')
+ax.tick_params(axis='both', pad=10)
+plt.subplots_adjust(bottom=0.27)
+plt.title("Promedio de Importancias Normalizadas (Split)",fontsize='xx-large', y=1.05)
 plt.show()
-
-#error cuadratico medio
-rmse = np.sqrt(mean_squared_error(dataset['Semestres'].values, predictions))
